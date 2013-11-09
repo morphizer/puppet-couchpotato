@@ -26,18 +26,25 @@
 #
 class couchpotato (
   $install_dir = '/opt/couchpotato',
+  $data_dir = '/var/couchpotato',
   $user = 'couchpotato',
   $address = '0.0.0.0',
   $port = '8082',
 ) {
 
-  # Install required  dependencies
-  $dependencies = [ 'python', 'git' ]
-
-  package { $dependencies:
-    ensure => installed,
+  # Install required  dependencies. Puppet sucks with having packages required by multiple modules.
+  if ! defined(Package['git']) {
+	package { 'git':
+	  ensure => installed,
+	}
   }
-
+  
+  if ! defined(Package['python']) {
+	package { 'python':
+	  ensure => installed,
+	}
+  }
+    
   # Create a user to run couchpotato as
   user { $user:
     ensure     => present,
@@ -61,13 +68,38 @@ class couchpotato (
     mode    => '0755',
     require => Vcsrepo[$install_dir],
   }
+  
+  file { '/etc/default/couchpotato':
+    ensure  => file,
+	content => template('couchpotato/ubuntu.default.erb'),
+	mode    => '644',
+	require => File['/etc/init.d/couchpotato'],
+  }
+  
+  file { $data_dir:
+    ensure  => directory,
+	mode    => '775',
+	owner   => $user,
+	group   => $user,
+	require => User[$user],
+  }
+  
+  # this is a hack to make it start up on the correct port we define, it's oddly 
+  # done only via the UI and defaults to 5050. https://github.com/RuudBurger/CouchPotatoServer/issues/242
+  file { "${data_dir}/settings.conf":
+    ensure  => file,
+	content => template('couchpotato/settings.conf.erb'),
+	mode    => '666',
+	owner   => $user,
+	require => [User[$user], File[$data_dir]],
+  }
 
   service {'couchpotato':
     ensure     => running,
     enable     => true,
-    hasrestart => true,
+    hasrestart => false,
     hasstatus  => false,
-    require    => File['/etc/init.d/couchpotato'],
+    require    => [File['/etc/default/couchpotato'], File[$data_dir]]
   }
 
 }
