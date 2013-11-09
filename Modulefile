@@ -1,0 +1,10 @@
+name    'morphizer-couchpotato'
+version '0.0.1'
+source 'http://couchpota.to/'
+author 'morphizer'
+license 'Apache License, Version 2.0'
+summary 'Couchpotato PVR application that searches for and manages Movies'
+description 'Couchpotato PVR application that searches for and manages Movies'
+project_page 'blank'
+
+dependency 'puppetlabs/vcsrepo', '>= 0.1.2'
